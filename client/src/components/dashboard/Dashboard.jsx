@@ -2,16 +2,18 @@ import React, { useContext, useEffect, useState } from "react";
 import { userAuthorContextObj } from "../../contexts/UserAuthorContext";
 import { getBaseUrl } from "../utils/config.js";
 import axios from "axios";
-import { Navigate } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import { ProgressBar } from "primereact/progressbar";
 
 function Dashboard() {
   const { currentUser } = useContext(userAuthorContextObj);
-  console.log(currentUser);
   const [userDet, setUserDet] = useState("");
-
   const navigate = useNavigate();
+  const [showHabitInput, setShowHabitInput] = useState(false);
+  const [newHabitName, setNewHabitName] = useState("");
+  const [showDailyInput, setShowDailyInput] = useState(false);
+  const [newDailyName, setNewDailyName] = useState("");
+  const [doneDailies, setDoneDailies] = useState([]);
 
   useEffect(() => {
     const fetchUserDetails = async () => {
@@ -20,57 +22,216 @@ function Dashboard() {
           params: { email: currentUser.email },
         });
         setUserDet(res.data);
-        console.log("res.data: ", res.data);
       } catch (err) {
         console.error("Error fetching user details:", err);
       }
     };
 
     fetchUserDetails();
-    console.log("user details: ", userDet);
   }, [currentUser.email]);
+
   useEffect(() => {
     console.log("user details: ", userDet);
   }, [userDet]);
 
+  const incrementHabit = async (taskName) => {
+    try {
+      const response = await axios.put(`${getBaseUrl()}/user-api/t-incr`, {
+        email: currentUser.email,
+        taskName,
+      });
+      console.log("Task incremented:", response.data.tasks);
+      // Optional: refresh user details to update score/level
+      setUserDet((prev) => ({
+        ...prev,
+        tasks: response.data.tasks,
+        score: prev.score + 5, // assuming +5 for now
+      }));
+    } catch (error) {
+      console.error(
+        "Error incrementing habit:",
+        error.response?.data || error.message
+      );
+      alert(error.response?.data?.message || "Something went wrong.");
+    }
+  };
+
+  const decrementHabit = async (taskName) => {
+    try {
+      const response = await axios.put(`${getBaseUrl()}/user-api/t-decr`, {
+        email: currentUser.email,
+        taskName,
+      });
+      console.log("Task decremented:", response.data.tasks);
+      setUserDet((prev) => ({
+        ...prev,
+        score: prev.score - 5,
+        tasks: response.data.tasks,
+      }));
+    } catch (error) {
+      console.error(
+        "Error decrementing habit:",
+        error.response?.data || error.message
+      );
+      alert(error.response?.data?.message || "Something went wrong.");
+    }
+  };
+
+  const createHabit = async () => {
+    if (!newHabitName.trim()) return;
+
+    try {
+      const res = await axios.post(`${getBaseUrl()}/user-api/create-task`, {
+        email: userDet.email,
+        taskName: newHabitName.trim(),
+      });
+
+      setUserDet((prev) => ({
+        ...prev,
+        tasks: res.data.tasks,
+      }));
+
+      setNewHabitName("");
+      setShowHabitInput(false);
+    } catch (err) {
+      console.error("Error creating habit:", err);
+      alert(err.response?.data?.message || "Something went wrong");
+    }
+  };
+
+  const createDaily = async () => {
+    if (!newDailyName.trim()) return;
+
+    try {
+      const res = await axios.post(`${getBaseUrl()}/user-api/create-daily`, {
+        email: userDet.email,
+        taskName: newDailyName.trim(),
+      });
+
+      setUserDet((prev) => ({
+        ...prev,
+        daily: res.data.daily,
+      }));
+
+      setNewDailyName("");
+      setShowDailyInput(false);
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || "Failed to add daily");
+    }
+  };
+  const handleDailyClick = (dailyName) => {
+    if (!doneDailies.includes(dailyName)) {
+      setDoneDailies((prev) => [...prev, dailyName]);
+    }
+  };
+  const incrementDaily = async (taskName) => {
+    if (doneDailies.includes(taskName)) return; // 👈 Prevent double click
+
+    try {
+      const res = await axios.put(`${getBaseUrl()}/user-api/d-incr`, {
+        email: userDet.email,
+        taskName,
+      });
+
+      setUserDet((prev) => ({
+        ...prev,
+        daily: res.data.daily,
+        score: prev.score + 10, // Optional visual feedback
+      }));
+
+      setDoneDailies((prev) => [...prev, taskName]); // ✅ Mark as done
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || "Failed to increment daily");
+    }
+  };
+
+  const avatars = [
+    {
+      name: "Zen Frog",
+      emoji: "🐸",
+      cost: 60,
+    },
+    {
+      name: "Cozy Cat",
+      emoji: "🐱",
+      cost: 70,
+    },
+    {
+      name: "Night Coder",
+      emoji: "🧛‍♂",
+      cost: 80,
+    },
+    {
+      name: "Space Explorer",
+      emoji: "👽",
+      cost: 90,
+    },
+    {
+      name: "Wizard of Focus",
+      emoji: "🧙‍♂",
+      cost: 100,
+    },
+    {
+      name: "Skeleton Punk",
+      emoji: "💀",
+      cost: 110,
+    },
+    {
+      name: "Productivity Hero",
+      emoji: "🦸‍♀",
+      cost: 120,
+    },
+    {
+      name: "Cyber Bot",
+      emoji: "🤖",
+      cost: 130,
+    },
+    {
+      name: "Royal Achiever",
+      emoji: "👑",
+      cost: 140,
+    },
+    {
+      name: "Dragon Tamer",
+      emoji: "🐉",
+      cost: 150,
+    },
+  ];
+
   return (
     <div className="dashboard">
-      {/* Top Section (Purple Header) */}
+      {/* Top Section */}
       <div
         style={{ backgroundColor: "#6f42c1" }}
         className="text-white p-3 rounded-top"
       >
         <div className="container d-flex justify-content-between align-items-center">
-          <div className="d-flex ">
-            {/* Avatar */}
+          <div className="d-flex">
             <img
               src={currentUser.profileImageUrl}
               alt="User Avatar"
-              className=" mr-2"
               style={{
                 marginRight: "8px",
                 width: "100px",
                 borderRadius: "10px",
               }}
             />
-            <div className="d-flex flex-column justify-content-between  my-3">
+            <div className="d-flex flex-column justify-content-between my-3">
               <h6 className="mb-0">{currentUser.firstName}</h6>
-              <div>
-                <small>
-                  <div className="d-flex justify-content-between">
-                    <span>⚡️ {userDet.score}</span>
-                    <span>
-                      Level: {Math.floor((userDet.score || 0) / 100) + 1}
-                    </span>
-                  </div>
-                </small>
-              </div>
-              <div className="card">
-                {/* <p>{userDet}</p> */}
+              <small className="d-flex justify-content-between w-100">
+                <span>⚡ {userDet.score}</span>
+                <span>Level: {Math.floor((userDet.score || 0) / 100) + 1}</span>
+              </small>
+              <div
+                className="bg-white rounded mt-1"
+                style={{ padding: "2px 6px" }}
+              >
                 <ProgressBar
                   value={userDet.score % 100}
                   showValue
-                  style={{ height: "15px" }}
+                  style={{ height: "12px" }}
                   color="lightblue"
                 />
               </div>
@@ -88,53 +249,665 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* Main Content */}
+      {/* Main Sections */}
       <div className="container my-4">
-        <div className="row justify-content-center">
+        <div className="row justify-content-center g-4">
           {/* Habits Section */}
-          <div className="col-md-3 mx-3 mb-4">
-            <div>
-              <h5 className="mb-3">Habits</h5>
-              <ul className="ps-3">
-                <li>Take a short break</li>
-                <li>Click here to do this bad habit you'd like to quit</li>
-                <li>Sleep</li>
-              </ul>
-              <button className="btn btn-outline-primary btn-sm mt-2">
-                Add a Habit
-              </button>
+          <div className="col-md-3">
+            <div className="section-box">
+              <h6 className="mb-3 fw-bold">Habits</h6>
+              {userDet?.tasks?.length > 0 ? (
+                userDet.tasks.map((task, index) => (
+                  <div
+                    key={index}
+                    className="d-flex justify-content-between align-items-center border rounded px-2 py-1 mb-2"
+                  >
+                    <span>
+                      {task.name}{" "}
+                      <span className="badge bg-secondary">{task.count}</span>
+                    </span>
+                    <div>
+                      <button
+                        className="btn btn-sm btn-success me-1"
+                        onClick={() => incrementHabit(task.name)}
+                      >
+                        +
+                      </button>
+                      <button
+                        className="btn btn-sm btn-danger"
+                        onClick={() => decrementHabit(task.name)}
+                      >
+                        -
+                      </button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-muted">No habits yet.</p>
+              )}
+
+              <div className="mt-3">
+                {showHabitInput ? (
+                  <div className="d-flex">
+                    <input
+                      type="text"
+                      className="form-control me-2"
+                      placeholder="Enter habit name"
+                      value={newHabitName}
+                      onChange={(e) => setNewHabitName(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && createHabit()}
+                    />
+                    <button
+                      className="btn btn-success me-1"
+                      onClick={createHabit}
+                    >
+                      ✔
+                    </button>
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => {
+                        setShowHabitInput(false);
+                        setNewHabitName("");
+                      }}
+                    >
+                      ✖
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    className="btn btn-outline-primary btn-sm"
+                    onClick={() => setShowHabitInput(true)}
+                  >
+                    Add a Habit
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
           {/* Dailies Section */}
-          <div className="col-md-3 mx-3 mb-4">
-            <div>
-              <h5 className="mb-3">Dailies</h5>
-              <ul className="ps-3">
-                <li>5 minutes of quiet breathing</li>
-              </ul>
-              <button className="btn btn-outline-primary btn-sm mt-2">
-                Add a Daily
-              </button>
+
+          <div className="col-md-3">
+            <div className="section-box p-3 rounded border bg-white shadow-sm">
+              <h6 className="mb-3 fw-bold d-flex justify-content-between align-items-center">
+                Dailies
+                <span className="badge bg-purple">
+                  {userDet?.daily?.length || 0}
+                </span>
+              </h6>
+
+              {userDet?.daily?.length > 0 ? (
+                <div className="d-flex flex-column gap-2">
+                  {userDet.daily.map((d, i) => {
+                    const isDone = doneDailies.includes(d.name);
+                    return (
+                      <div
+                        key={i}
+                        className={`d-flex justify-content-between align-items-center px-3 py-2 rounded ${
+                          isDone
+                            ? "bg-light text-muted text-decoration-line-through"
+                            : "bg-body"
+                        }`}
+                        style={{
+                          cursor: isDone ? "not-allowed" : "pointer",
+                          border: "1px solid #ddd",
+                          transition: "background 0.2s ease",
+                        }}
+                        onClick={() => {
+                          if (!isDone) incrementDaily(d.name);
+                        }}
+                      >
+                        <span>{d.name}</span>
+                        <span className="badge bg-secondary">{d.count}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-muted mt-2">No dailies yet.</p>
+              )}
+
+              {/* Input section */}
+              <div className="mt-3">
+                {showDailyInput ? (
+                  <div className="d-flex">
+                    <input
+                      type="text"
+                      className="form-control me-2"
+                      placeholder="Enter daily name"
+                      value={newDailyName}
+                      onChange={(e) => setNewDailyName(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && createDaily()}
+                    />
+                    <button
+                      className="btn btn-success me-1"
+                      onClick={createDaily}
+                    >
+                      ✔
+                    </button>
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => {
+                        setShowDailyInput(false);
+                        setNewDailyName("");
+                      }}
+                    >
+                      ✖
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    className="btn btn-outline-primary btn-sm w-100"
+                    onClick={() => setShowDailyInput(true)}
+                  >
+                    Add a Daily
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
           {/* Rewards Section */}
-          <div className="col-md-3 mx-3 mb-4">
-            <div>
-              <h5 className="mb-3">Rewards</h5>
-              <ul className="ps-3">
-                <li>Reward yourself!</li>
-              </ul>
-              <button className="btn btn-outline-primary btn-sm mt-2">
-                Add a Reward
-              </button>
+          <div className="col-md-5">
+            <div className="section-box">
+              <h6 className="mb-3 fw-bold">Avatar Shop</h6>
+              <div className="d-flex flex-wrap gap-3">
+                {avatars
+                  .filter((a) => !userDet?.rewards?.includes(a.name))
+                  .map((a, idx) => (
+                    <div
+                      key={idx}
+                      className="d-flex flex-column align-items-center justify-content-between p-2 rounded border"
+                      style={{
+                        width: "90px",
+                        minHeight: "130px",
+                        backgroundColor: "#f9f9f9",
+                      }}
+                    >
+                      <div style={{ fontSize: "1.8rem" }}>{a.emoji}</div>
+                      <div
+                        className="text-center"
+                        style={{ fontSize: "0.8rem" }}
+                      >
+                        {a.name}
+                      </div>
+                      <span
+                        className="badge bg-warning text-dark"
+                        style={{ fontSize: "0.75rem" }}
+                      >
+                        ⚡ {a.cost}
+                      </span>
+                      <button
+                        className="btn btn-sm btn-outline-primary mt-1"
+                        style={{ fontSize: "0.7rem" }}
+                        onClick={() => handleBuyAvatar(a)}
+                      >
+                        Buy
+                      </button>
+                    </div>
+                  ))}
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
   );
+
+//   <div className="container my-4">
+//     <div
+//       className="d-grid gap-4"
+//       style={{ gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))" }}
+//     >
+//       {/* Habits */}
+//       <div>
+//         <h6 className="fw-bold mb-3">Habits</h6>
+//         {userDet?.tasks?.length > 0 ? (
+//           <div className="d-grid gap-2">
+//             {userDet.tasks.map((task, index) => (
+//               <div
+//                 key={index}
+//                 className="d-flex justify-content-between align-items-center bg-light rounded px-3 py-2"
+//               >
+//                 <span>
+//                   {task.name}{" "}
+//                   <span className="badge bg-secondary">{task.count}</span>
+//                 </span>
+//                 <div>
+//                   <button
+//                     className="btn btn-sm btn-success me-1"
+//                     onClick={() => incrementHabit(task.name)}
+//                   >
+//                     +
+//                   </button>
+//                   <button
+//                     className="btn btn-sm btn-danger"
+//                     onClick={() => decrementHabit(task.name)}
+//                   >
+//                     -
+//                   </button>
+//                 </div>
+//               </div>
+//             ))}
+//           </div>
+//         ) : (
+//           <p className="text-muted">No habits yet.</p>
+//         )}
+
+//         <div className="mt-3">
+//           {showHabitInput ? (
+//             <div className="d-flex">
+//               <input
+//                 type="text"
+//                 className="form-control me-2"
+//                 placeholder="Enter habit name"
+//                 value={newHabitName}
+//                 onChange={(e) => setNewHabitName(e.target.value)}
+//                 onKeyDown={(e) => e.key === "Enter" && createHabit()}
+//               />
+//               <button className="btn btn-success me-1" onClick={createHabit}>
+//                 ✔
+//               </button>
+//               <button
+//                 className="btn btn-secondary"
+//                 onClick={() => {
+//                   setShowHabitInput(false);
+//                   setNewHabitName("");
+//                 }}
+//               >
+//                 ✖
+//               </button>
+//             </div>
+//           ) : (
+//             <button
+//               className="btn btn-outline-primary btn-sm"
+//               onClick={() => setShowHabitInput(true)}
+//             >
+//               Add a Habit
+//             </button>
+//           )}
+//         </div>
+//       </div>
+
+//       {/* Dailies */}
+//       <div>
+//         <h6 className="fw-bold mb-3 d-flex justify-content-between">
+//           Dailies
+//           <span className="badge bg-purple">
+//             {userDet?.daily?.length || 0}
+//           </span>
+//         </h6>
+//         {userDet?.daily?.length > 0 ? (
+//           <div className="d-grid gap-2">
+//             {userDet.daily.map((d, i) => {
+//               const isDone = doneDailies.includes(d.name);
+//               return (
+//                 <div
+//                   key={i}
+//                   className={`d-flex justify-content-between align-items-center rounded px-3 py-2 ${
+//                     isDone
+//                       ? "bg-light text-muted text-decoration-line-through"
+//                       : "bg-body"
+//                   }`}
+//                   style={{
+//                     cursor: isDone ? "not-allowed" : "pointer",
+//                     border: "1px solid #ddd",
+//                   }}
+//                   onClick={() => {
+//                     if (!isDone) incrementDaily(d.name);
+//                   }}
+//                 >
+//                   <span>{d.name}</span>
+//                   <span className="badge bg-secondary">{d.count}</span>
+//                 </div>
+//               );
+//             })}
+//           </div>
+//         ) : (
+//           <p className="text-muted">No dailies yet.</p>
+//         )}
+
+//         <div className="mt-3">
+//           {showDailyInput ? (
+//             <div className="d-flex">
+//               <input
+//                 type="text"
+//                 className="form-control me-2"
+//                 placeholder="Enter daily name"
+//                 value={newDailyName}
+//                 onChange={(e) => setNewDailyName(e.target.value)}
+//                 onKeyDown={(e) => e.key === "Enter" && createDaily()}
+//               />
+//               <button className="btn btn-success me-1" onClick={createDaily}>
+//                 ✔
+//               </button>
+//               <button
+//                 className="btn btn-secondary"
+//                 onClick={() => {
+//                   setShowDailyInput(false);
+//                   setNewDailyName("");
+//                 }}
+//               >
+//                 ✖
+//               </button>
+//             </div>
+//           ) : (
+//             <button
+//               className="btn btn-outline-primary btn-sm w-100"
+//               onClick={() => setShowDailyInput(true)}
+//             >
+//               Add a Daily
+//             </button>
+//           )}
+//         </div>
+//       </div>
+
+//       {/* Avatar Shop */}
+//       <div>
+//         <h6 className="fw-bold mb-3">Avatar Shop</h6>
+//         <div
+//           className="d-grid gap-3"
+//           style={{ gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))" }}
+//         >
+//           {avatars
+//             .filter((a) => !userDet?.rewards?.includes(a.name))
+//             .map((a, idx) => (
+//               <div
+//                 key={idx}
+//                 className="d-flex flex-column align-items-center justify-content-between p-2 rounded border bg-light"
+//                 style={{ fontSize: "0.8rem" }}
+//               >
+//                 <div style={{ fontSize: "1.8rem" }}>{a.emoji}</div>
+//                 <div className="text-center">{a.name}</div>
+//                 <span className="badge bg-warning text-dark">⚡ {a.cost}</span>
+//                 <button
+//                   className="btn btn-sm btn-outline-primary mt-1"
+//                   style={{ fontSize: "0.75rem" }}
+//                   onClick={() => handleBuyAvatar(a)}
+//                 >
+//                   Buy
+//                 </button>
+//               </div>
+//             ))}
+//         </div>
+//       </div>
+//     </div>
+//   </div>
+// );
+
+  // return (
+  //   <div className="dashboard">
+  //     {/* Top Section (Purple Header) */}
+  //     <div
+  //       style={{ backgroundColor: "#6f42c1" }}
+  //       className="text-white p-3 rounded-top"
+  //     >
+  //       <div className="container d-flex justify-content-between align-items-center">
+  //         <div className="d-flex">
+  //           {/* Avatar */}
+  //           <img
+  //             src={currentUser.profileImageUrl}
+  //             alt="User Avatar"
+  //             style={{
+  //               marginRight: "8px",
+  //               width: "100px",
+  //               borderRadius: "10px",
+  //             }}
+  //           />
+  //           <div className="d-flex flex-column justify-content-between my-3">
+  //             <h6 className="mb-0">{currentUser.firstName}</h6>
+  //             <small>
+  //               <div className="d-flex justify-content-between">
+  //                 <span>⚡ {userDet.score}</span>
+  //                 <span>
+  //                   Level: {Math.floor((userDet.score || 0) / 100) + 1}
+  //                 </span>
+  //               </div>
+  //             </small>
+  //             <div className="card">
+  //               <ProgressBar
+  //                 value={userDet.score % 100}
+  //                 showValue
+  //                 style={{ height: "15px" }}
+  //                 color="lightblue"
+  //               />
+  //             </div>
+  //           </div>
+  //         </div>
+  //         <div>
+  //           <h5 className="mb-0 pixeFont">Play HabiFy</h5>
+  //           <button
+  //             className="btn btn-light btn-sm mt-2"
+  //             onClick={() => navigate("/leaderboard")}
+  //           >
+  //             Leaderboard
+  //           </button>
+  //         </div>
+  //       </div>
+  //     </div>
+
+  //     {/* Main Sections */}
+  //     <div className="container my-4">
+  //       <div className="row justify-content-center">
+  //         {/* Habits */}
+
+  //         <div className="col-md-3 mx-2 mb-4">
+  //           <div className="card">
+  //             <div className="card-header bg-light">
+  //               <strong>Habits</strong>
+  //             </div>
+  //             <div className="card-body p-2">
+  //               {userDet?.tasks?.length > 0 ? (
+  //                 userDet.tasks.map((task, index) => (
+  //                   <div
+  //                     key={index}
+  //                     className="mb-2 d-flex justify-content-between align-items-center border rounded px-2 py-1"
+  //                   >
+  //                     <span>
+  //                       {task.name}{" "}
+  //                       <span className="badge bg-secondary">{task.count}</span>
+  //                     </span>
+  //                     <div>
+  //                       <button
+  //                         className="btn btn-sm btn-success me-1"
+  //                         onClick={() => incrementHabit(task.name)}
+  //                       >
+  //                         +
+  //                       </button>
+  //                       <button
+  //                         className="btn btn-sm btn-danger"
+  //                         onClick={() => decrementHabit(task.name)}
+  //                       >
+  //                         -
+  //                       </button>
+  //                     </div>
+  //                   </div>
+  //                 ))
+  //               ) : (
+  //                 <p className="text-muted">No habits yet.</p>
+  //               )}
+  //             </div>
+
+  //             <div className="card-footer text-center">
+  //               {showHabitInput ? (
+  //                 <div className="d-flex">
+  //                   <input
+  //                     type="text"
+  //                     className="form-control me-2"
+  //                     placeholder="Enter habit name"
+  //                     value={newHabitName}
+  //                     onChange={(e) => setNewHabitName(e.target.value)}
+  //                     onKeyDown={(e) => e.key === "Enter" && createHabit()}
+  //                   />
+  //                   <button
+  //                     className="btn btn-success me-2"
+  //                     onClick={createHabit}
+  //                   >
+  //                     ✔
+  //                   </button>
+  //                   <button
+  //                     className="btn btn-secondary"
+  //                     onClick={() => {
+  //                       setShowHabitInput(false);
+  //                       setNewHabitName("");
+  //                     }}
+  //                   >
+  //                     ✖
+  //                   </button>
+  //                 </div>
+  //               ) : (
+  //                 <button
+  //                   className="btn btn-outline-primary btn-sm"
+  //                   onClick={() => setShowHabitInput(true)}
+  //                 >
+  //                   Add a Habit
+  //                 </button>
+  //               )}
+  //             </div>
+  //           </div>
+  //         </div>
+
+  //         {/* Dailies */}
+  //         <div className="col-md-3 mx-2 mb-4">
+  //           <div className="card">
+  //             <div className="card-header bg-light">
+  //               <strong>Dailies</strong>
+  //               <span className="badge bg-purple float-end">
+  //                 {userDet?.daily?.length || 0}
+  //               </span>
+  //             </div>
+
+  //             <div className="card-body p-2">
+  //               {userDet?.daily?.length > 0 ? (
+  //                 userDet.daily.map((d, i) => {
+  //                   const isDone = doneDailies.includes(d.name);
+  //                   return (
+  //                     <div
+  //                       key={i}
+  //                       className={`mb-2 d-flex justify-content-between align-items-center border rounded px-2 py-1 ${
+  //                         isDone
+  //                           ? "bg-light text-muted text-decoration-line-through"
+  //                           : ""
+  //                       }`}
+  //                       style={{ cursor: isDone ? "not-allowed" : "pointer" }}
+  //                       onClick={() => handleDailyClick(d.name)}
+  //                     >
+  //                       <span>{d.name}</span>
+  //                       <button className="btn btn-sm btn-secondary" disabled>
+  //                         {isDone ? "Done" : "Pending"}
+  //                       </button>
+  //                     </div>
+  //                   );
+  //                 })
+  //               ) : (
+  //                 <p className="text-muted">No dailies yet.</p>
+  //               )}
+  //             </div>
+
+  //             <div className="card-footer text-center">
+  //               {showDailyInput ? (
+  //                 <div className="d-flex">
+  //                   <input
+  //                     type="text"
+  //                     className="form-control me-2"
+  //                     placeholder="Enter daily name"
+  //                     value={newDailyName}
+  //                     onChange={(e) => setNewDailyName(e.target.value)}
+  //                     onKeyDown={(e) => e.key === "Enter" && createDaily()}
+  //                   />
+  //                   <button
+  //                     className="btn btn-success me-2"
+  //                     onClick={createDaily}
+  //                   >
+  //                     ✔
+  //                   </button>
+  //                   <button
+  //                     className="btn btn-secondary"
+  //                     onClick={() => {
+  //                       setShowDailyInput(false);
+  //                       setNewDailyName("");
+  //                     }}
+  //                   >
+  //                     ✖
+  //                   </button>
+  //                 </div>
+  //               ) : (
+  //                 <button
+  //                   className="btn btn-outline-primary btn-sm"
+  //                   onClick={() => setShowDailyInput(true)}
+  //                 >
+  //                   Add a Daily
+  //                 </button>
+  //               )}
+  //             </div>
+  //           </div>
+  //         </div>
+
+  //         {/* Rewards */}
+  //         <div className="col-md-3 mx-2 mb-4">
+  //           <div
+  //             className="card"
+  //             style={{
+  //               borderRadius: "1rem",
+  //               boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+  //             }}
+  //           >
+  //             <div className="card-header bg-light">
+  //               <strong>Rewards</strong>
+  //             </div>
+
+  //             <div className="card-body p-2">
+  //               <div className="row">
+  //                 {avatars
+  //                   .filter((a) => !userDet?.rewards?.includes(a.name)) // 👈 Remove already owned avatars
+  //                   .map((a, idx) => (
+  //                     <div key={idx} className="col-md-4 mb-4">
+  //                       <div className="card h-100 text-center shadow-sm">
+  //                         <div className="card-body d-flex flex-column justify-content-between">
+  //                           <div>
+  //                             <div style={{ fontSize: "1.8rem" }}>
+  //                               {a.emoji}
+  //                             </div>
+  //                             <h6
+  //                               className="mt-2 mb-1"
+  //                               style={{ fontSize: "0.85rem" }}
+  //                             >
+  //                               {a.name}
+  //                             </h6>
+  //                             <p
+  //                               className="card-text text-muted small"
+  //                               style={{ fontSize: "0.75rem" }}
+  //                             >
+  //                               {a.description || ""}
+  //                             </p>
+  //                           </div>
+  //                           <div>
+  //                             <span
+  //                               className="badge bg-warning text-dark mb-2"
+  //                               style={{ fontSize: "0.75rem" }}
+  //                             >
+  //                               ⚡ {a.cost}
+  //                             </span>
+  //                             <button
+  //                               className="btn btn-sm btn-outline-primary"
+  //                               onClick={() => handleBuyAvatar(a)}
+  //                             >
+  //                               Buy
+  //                             </button>
+  //                           </div>
+  //                         </div>
+  //                       </div>
+  //                     </div>
+  //                   ))}
+  //               </div>
+  //             </div>
+
+  //           </div>
+  //         </div>
+  //       </div>
+  //     </div>
+  //   </div>
+  // );
 }
 
 export default Dashboard;

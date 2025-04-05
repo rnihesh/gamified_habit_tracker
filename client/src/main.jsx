@@ -15,7 +15,7 @@ import Footer from "./components/common/Footer.jsx";
 import Header from "./components/common/Header.jsx";
 import SignIn from "./components/common/SignIn.jsx";
 import SignUp from "./components/common/SignUp.jsx";
-
+import Dashboard from "./components/dashboard/Dashboard.jsx";
 import UserAuthorContext from "./contexts/UserAuthorContext.jsx"; // You can rename or adjust this
 import Leaderboard from "./components/leaderboard/Leaderboard.jsx";
 import Community from "./components/community/Community.jsx";
@@ -48,6 +48,10 @@ const browserRouterObj = createBrowserRouter(
         {
           path: "community",
           element: <Community />,
+        },
+        {
+          path: "dashboard",
+          element: <Dashboard />,
         },
         {
           path: "",

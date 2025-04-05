@@ -186,6 +186,21 @@ userApp.get(
   })
 );
 
+//get user details
+userApp.get('/userDet', async (req, res) => {
+  try {
+    const email = req.query.email;
+    if (!email) return res.status(400).json({ message: "Email is required" });
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    res.json(user);
+  } catch (err) {
+    console.error("Error fetching user details:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
 
 module.exports = userApp;

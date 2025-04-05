@@ -2,6 +2,8 @@ const exp = require("express");
 const userApp = exp.Router();
 
 const User = require("../models/user.model.js");
+const Post = require("../models/posts.model.js");
+
 const expressAsyncHandler = require("express-async-handler");
 const createUser = require("../APIs/createUser.js");
 
@@ -162,8 +164,10 @@ userApp.post(
 userApp.get(
   "/community",
   expressAsyncHandler(async (req, res) => {
-    const users = await User.find({}, "firstName profileImageUrl nScore updatedAt")
-      .sort({ updatedAt: -1 });
+    const users = await User.find(
+      {},
+      "firstName profileImageUrl nScore updatedAt"
+    ).sort({ updatedAt: -1 });
 
     res.status(200).json({
       message: "Community leaderboard fetched",
@@ -176,8 +180,9 @@ userApp.get(
 userApp.get(
   "/leaderboard",
   expressAsyncHandler(async (req, res) => {
-    const users = await User.find({}, "firstName profileImageUrl score")
-      .sort({ score: -1 }); // descending order
+    const users = await User.find({}, "firstName profileImageUrl score").sort({
+      score: -1,
+    }); // descending order
 
     res.status(200).json({
       message: "Leaderboard fetched",
@@ -187,20 +192,167 @@ userApp.get(
 );
 
 //get user details
-userApp.get('/userDet', async (req, res) => {
-  try {
-    const email = req.query.email;
-    if (!email) return res.status(400).json({ message: "Email is required" });
+userApp.get(
+  "/userDet",
+  expressAsyncHandler(async (req, res) => {
+    try {
+      const email = req.query.email;
+      if (!email) return res.status(400).json({ message: "Email is required" });
 
+      const user = await User.findOne({ email });
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      res.json(user);
+    } catch (err) {
+      console.error("Error fetching user details:", err);
+      res.status(500).json({ message: "Server error" });
+    }
+  })
+);
+
+const avatars = [
+  {
+    name: "Zen Frog",
+    emoji: "🐸",
+    cost: 60,
+    description: "Hop into calm after tasks",
+  },
+  {
+    name: "Cozy Cat",
+    emoji: "🐱",
+    cost: 70,
+    description: "For calm & chill habiters",
+  },
+  {
+    name: "Night Coder",
+    emoji: "🧛‍♂️",
+    cost: 80,
+    description: "For night owls and coders",
+  },
+  {
+    name: "Space Explorer",
+    emoji: "👽",
+    cost: 90,
+    description: "For out-of-this-world focus",
+  },
+  {
+    name: "Wizard of Focus",
+    emoji: "🧙‍♂️",
+    cost: 100,
+    description: "For the task-completing sorcerer",
+  },
+  {
+    name: "Skeleton Punk",
+    emoji: "💀",
+    cost: 110,
+    description: "For the rebel productive soul",
+  },
+  {
+    name: "Productivity Hero",
+    emoji: "🦸‍♀️",
+    cost: 120,
+    description: "You’re saving your own time!",
+  },
+  {
+    name: "Cyber Bot",
+    emoji: "🤖",
+    cost: 130,
+    description: "Complete tasks like a machine",
+  },
+  {
+    name: "Royal Achiever",
+    emoji: "👑",
+    cost: 140,
+    description: "Rule your habit kingdom",
+  },
+  {
+    name: "Dragon Tamer",
+    emoji: "🐉",
+    cost: 150,
+    description: "You’ve conquered the habit beast",
+  },
+];
+
+//routes for rewards
+userApp.put(
+  "/reward/:num",
+  expressAsyncHandler(async (req, res) => {
+    const email = req.body.email; // assuming frontend sends it
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: "User not found" });
 
-    res.json(user);
-  } catch (err) {
-    console.error("Error fetching user details:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-});
+    const index = parseInt(req.params.num, 10) - 1;
 
+    if (index < 0 || index >= avatars.length) {
+      return res.status(400).json({ message: "Invalid reward number." });
+    }
+
+    const reward = avatars[index];
+
+    if (user.score >= reward.cost) {
+      user.score -= reward.cost;
+      user.rewards.push(reward.name); // optional
+      await user.save();
+      res.send({
+        message: `Purchased: ${reward.name}`,
+        remainingScore: user.score,
+      });
+    } else {
+      const needed = reward.cost - user.score;
+      res.status(400).send({
+        message: `Not enough points. You need ${needed} more.`,
+      });
+    }
+  })
+);
+
+//post for posts
+userApp.post(
+  "/post",
+  expressAsyncHandler(async (req, res) => {
+    const { firstName, profileImageUrl, desc, score } = req.body;
+
+    if (!firstName || !desc) {
+      res.status(400).send({ message: "firstName and desc are required" });
+      return;
+    }
+
+    const newPost = new Post({
+      firstName,
+      profileImageUrl,
+      desc,
+      score,
+    });
+
+    await newPost.save();
+    res.status(201).send({ message: "Post created", post: newPost });
+  })
+);
+
+//like count
+userApp.put(
+  "/like",
+  expressAsyncHandler(async (req, res) => {
+    const { postId } = req.body;
+    if (!postId) {
+      return res.status(400).send({ message: "postId is required" });
+    }
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).send({ message: "Post not found" });
+    }
+    post.likeCount += 1;
+    await post.save();
+    res.status(200).send({ message: "Post liked", likeCount: post.likeCount });
+  })
+);
+
+//get posts
+userApp.get(
+  "/posts",
+  expressAsyncHandler(async (req, res) => {
+    const posts = await Post.find().sort({ createdAt: -1 }); // latest first
+    res.status(200).send(posts);
+  })
+);
 
 module.exports = userApp;

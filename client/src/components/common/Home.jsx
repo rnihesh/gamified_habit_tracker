@@ -7,6 +7,11 @@ import { useNavigate } from "react-router-dom";
 import { ProgressBar } from "primereact/progressbar";
 import BlurText from "./BlurText";
 import { getBaseUrl } from "../utils/config.js";
+import Particles from "./Particles";
+import ASCIIText from "./ASCIIText";
+import ScrollVelocity from "./ScrollVelocity";
+import { useRef } from "react";
+import VariableProximity from "./VariableProximity";
 
 function Home() {
   const { currentUser, setCurrentUser } = useContext(userAuthorContextObj);
@@ -59,6 +64,7 @@ function Home() {
   const handleAnimationComplete = () => {
     console.log("Animation completed!");
   };
+  const containerRef = useRef(null);
 
   return (
     <div className="container">
@@ -71,24 +77,50 @@ function Home() {
       ) : (
         <div>
           {isSignedIn === false && (
-            <div className="home-item p-5 rounded-5">
-              <BlurText
-                text="Welcome to HabiFy !?"
-                delay={150}
-                animateBy="words"
-                direction="top"
-                onAnimationComplete={handleAnimationComplete}
-                className="text-2xl mb-8 w-100"
-                style={{ fontSize: "1000px" }}
-              />
+            <div className=" p-5 rounded-5">
               <div
-                style={{ width: "100%", height: "600px", position: "relative" }}
-              ></div>
+                style={{
+                  width: "100%",
+                  height: "200px",
+                  position: "relative",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexDirection: "column",
+                }}
+              >
+                <ASCIIText
+                  text="HabiFy !!"
+                  enableWaves={true}
+                  asciiFontSize={1}
+                />
+
+                <div style={{ marginTop: "700px" }}>
+                  <ScrollVelocity
+                    texts={["Task It", "Complete It", "Get Rewards"]}
+                    velocity={100}
+                    className="custom-scroll-text"
+                  />
+                </div>
+                <div ref={containerRef} style={{ position: "relative" }}>
+                  {/* <VariableProximity
+                    label={
+                      "Hover me! And then star React Bits on GitHub, or else..."
+                    }
+                    className={"variable-proximity-demo"}
+                    fromFontVariationSettings="'wght' 400, 'opsz' 30"
+                    toFontVariationSettings="'wght' 1000, 'opsz' 40"
+                    containerRef={containerRef}
+                    radius={100}
+                    falloff="linear"
+                  /> */}
+                </div>
+              </div>
             </div>
           )}
           {isSignedIn === true && (
             <div className="card">
-              <ProgressBar value={50}></ProgressBar>
+              <p>Go to Dashboard </p>
             </div>
           )}
         </div>

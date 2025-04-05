@@ -1,27 +1,27 @@
-import React from 'react'
-import Header from './common/Header'
-import Footer from './common/Footer'
-import {Outlet} from 'react-router-dom'
-import {ClerkProvider} from '@clerk/clerk-react'
+import React from "react";
+import Header from "./common/Header";
+import Footer from "./common/Footer";
+import { Outlet } from "react-router-dom";
+import { ClerkProvider } from "@clerk/clerk-react";
 
-const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 if (!PUBLISHABLE_KEY) {
- throw new Error("Missing Publishable Key")
+  throw new Error("Missing Publishable Key");
 }
 
 function Rootlayout() {
   return (
-   <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
-        <div>
-       <Header />
-           <div style={{minHeight:"90vh"}}>
-               <Outlet /> 
-           </div>
-       <Footer />
-     </div>
-   </ClerkProvider>
-  )
+    <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
+      <div className="text-center">
+        <Header />
+        <div style={{ minHeight: "90vh" }}>
+          <Outlet />
+        </div>
+        <Footer />
+      </div>
+    </ClerkProvider>
+  );
 }
 
-export default Rootlayout
+export default Rootlayout;

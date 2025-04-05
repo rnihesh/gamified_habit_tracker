@@ -50,7 +50,9 @@ const userSchema = new mongoose.Schema(
       default: true,
     },
   },
-  { strict: "throw" }
+  { strict: "throw",
+    timestamps: true
+   }
 );
 
 const User = mongoose.model("user", userSchema);

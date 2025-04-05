@@ -158,5 +158,34 @@ userApp.post(
   })
 );
 
+//get community details
+userApp.get(
+  "/community",
+  expressAsyncHandler(async (req, res) => {
+    const users = await User.find({}, "firstName profileImageUrl nScore updatedAt")
+      .sort({ updatedAt: -1 });
+
+    res.status(200).json({
+      message: "Community leaderboard fetched",
+      users,
+    });
+  })
+);
+
+//get leaderboard details
+userApp.get(
+  "/leaderboard",
+  expressAsyncHandler(async (req, res) => {
+    const users = await User.find({}, "firstName profileImageUrl score")
+      .sort({ score: -1 }); // descending order
+
+    res.status(200).json({
+      message: "Leaderboard fetched",
+      users,
+    });
+  })
+);
+
+
 
 module.exports = userApp;

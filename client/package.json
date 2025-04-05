@@ -12,8 +12,10 @@
   "dependencies": {
     "@clerk/clerk-react": "^5.25.6",
     "@clerk/themes": "^2.2.27",
+    "@react-spring/web": "^9.7.5",
     "axios": "^1.8.4",
     "bootstrap": "^5.3.5",
+    "primereact": "^10.9.4",
     "react": "^19.0.0",
     "react-dom": "^19.1.0",
     "react-hook-form": "^7.55.0",

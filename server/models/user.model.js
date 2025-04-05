@@ -49,10 +49,18 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    achievements: [{
+      title: String,
+      icon: String,
+      earnedAt: Date
+    }]
   },
-  { strict: "throw",
+  { 
+    strict: "throw",
     timestamps: true
-   }
+  }
 );
 
 const User = mongoose.model("user", userSchema);

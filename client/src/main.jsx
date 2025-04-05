@@ -18,7 +18,6 @@ import SignUp from "./components/common/SignUp.jsx";
 
 import UserAuthorContext from "./contexts/UserAuthorContext.jsx"; // You can rename or adjust this
 import Leaderboard from "./components/leaderboard/Leaderboard.jsx";
-import Community from "./components/community/Community.jsx";
 
 import { PrimeReactProvider, PrimeReactContext } from "primereact/api";
 
@@ -45,10 +44,10 @@ const browserRouterObj = createBrowserRouter(
           path: "leaderboard",
           element: <Leaderboard />,
         },
-        {
-          path: "community",
-          element: <Community />,
-        },
+        // {
+        //   path: "community",
+        //   element: <Community />,
+        // },
         {
           path: "",
           element: <Navigate to="/" />,

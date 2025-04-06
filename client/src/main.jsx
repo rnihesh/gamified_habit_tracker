@@ -67,6 +67,45 @@ const browserRouterObj = createBrowserRouter(
   }
 );
 
+
+// Utility function to convert VAPID key
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding)
+    .replace(/-/g, '+')
+    .replace(/_/g, '/');
+
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+// Request notification permission and subscribe for push notifications
+Notification.requestPermission().then(permission => {
+  if (permission === 'granted') {
+    navigator.serviceWorker.ready.then(registration => {
+      const vapidPublicKey = 'YOUR_PUBLIC_VAPID_KEY'; // Replace with your actual public key
+      const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
+      registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: convertedVapidKey
+      })
+      .then(subscription => {
+        console.log('User is subscribed:', subscription);
+        // TODO: Send the subscription object to your server for storage
+      })
+      .catch(err => console.error('Subscription error: ', err));
+    });
+  } else {
+    console.error('Notification permission not granted.');
+  }
+});
+
+
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <PrimeReactProvider>

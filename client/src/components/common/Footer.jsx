@@ -178,8 +178,8 @@ export default function Footer() {
         {/* Elevated Brand Section */}
         <div style={styles.brandSection}>
           <div style={styles.logo}>
-            <span>Community</span>
-            <span style={{color: '#38bdf8'}}>Connect</span>
+            <span>Habi</span>
+            <span style={{color: '#38bdf8'}}>Fy</span>
           </div>
           <p style={styles.tagline }>
             Share your progress with others.
@@ -228,7 +228,7 @@ export default function Footer() {
             <Link to="/privacy" style={styles.legalLinks.a}>Privacy</Link>
             <Link to="/terms" style={styles.legalLinks.a}>Terms</Link>
           </div>
-          <p>© {currentYear} CommunityConnect</p>
+          <p>© {currentYear} HabiFy</p>
         </div>
       </div>
     </footer>

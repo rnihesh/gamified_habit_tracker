@@ -28,7 +28,58 @@ function Dashboard() {
     };
 
     fetchUserDetails();
+
+    // Load completed dailies from localStorage with timestamp verification
+    loadCompletedDailies();
   }, [currentUser.email]);
+
+  // Function to load completed dailies from localStorage while checking timestamps
+  const loadCompletedDailies = () => {
+    try {
+      const savedDailies = localStorage.getItem(
+        `${currentUser.email}_completedDailies`
+      );
+      if (savedDailies) {
+        const parsedDailies = JSON.parse(savedDailies);
+
+        // Filter out dailies that should be reset (completed before today's midnight)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Set to beginning of today
+
+        const stillValidDailies = parsedDailies.filter((item) => {
+          const completedTime = new Date(item.timestamp);
+          return completedTime >= today; // Keep only if completed today
+        });
+
+        // Extract just the task names for our state
+        const dailyNames = stillValidDailies.map((item) => item.name);
+        setDoneDailies(dailyNames);
+
+        // Save the filtered list back to localStorage
+        if (dailyNames.length !== parsedDailies.length) {
+          saveDailiesToLocalStorage(dailyNames);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading completed dailies:", error);
+    }
+  };
+
+  // Function to save completed dailies with timestamps to localStorage
+  const saveDailiesToLocalStorage = (dailies) => {
+    try {
+      const dailiesWithTimestamps = dailies.map((name) => ({
+        name,
+        timestamp: new Date().toISOString(), // Add current timestamp
+      }));
+      localStorage.setItem(
+        `${currentUser.email}_completedDailies`,
+        JSON.stringify(dailiesWithTimestamps)
+      );
+    } catch (error) {
+      console.error("Error saving dailies to localStorage:", error);
+    }
+  };
 
   useEffect(() => {
     console.log("user details: ", userDet);
@@ -120,13 +171,9 @@ function Dashboard() {
       alert(err.response?.data?.message || "Failed to add daily");
     }
   };
-  const handleDailyClick = (dailyName) => {
-    if (!doneDailies.includes(dailyName)) {
-      setDoneDailies((prev) => [...prev, dailyName]);
-    }
-  };
+
   const incrementDaily = async (taskName) => {
-    if (doneDailies.includes(taskName)) return; // 👈 Prevent double click
+    if (doneDailies.includes(taskName)) return; // Prevent double click
 
     try {
       const res = await axios.put(`${getBaseUrl()}/user-api/d-incr`, {
@@ -140,7 +187,12 @@ function Dashboard() {
         score: prev.score + 10, // Optional visual feedback
       }));
 
-      setDoneDailies((prev) => [...prev, taskName]); // ✅ Mark as done
+      // Update local state
+      const updatedDailies = [...doneDailies, taskName];
+      setDoneDailies(updatedDailies);
+
+      // Save to localStorage with timestamp
+      saveDailiesToLocalStorage(updatedDailies);
     } catch (err) {
       console.error(err);
       alert(err.response?.data?.message || "Failed to increment daily");
@@ -199,6 +251,87 @@ function Dashboard() {
       cost: 150,
     },
   ];
+  // Add these state variables at the top with your other useState declarations
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [modalMessage, setModalMessage] = useState("");
+  const [selectedAvatar, setSelectedAvatar] = useState(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [streakData, setStreakData] = useState({
+    currentStreak: 0,
+    bestStreak: 0,
+  });
+
+  const handleBuyReward = async (avatar) => {
+    // Set the selected avatar and show confirmation modal first
+    setSelectedAvatar(avatar);
+    setShowConfirmModal(true);
+  };
+
+  const confirmPurchase = async () => {
+    // Find the index of the avatar in the avatars array
+    const avatarIndex = avatars.findIndex(
+      (a) => a.name === selectedAvatar.name
+    );
+
+    if (avatarIndex === -1) {
+      setModalMessage("Avatar not found!");
+      setShowErrorModal(true);
+      setShowConfirmModal(false);
+      return;
+    }
+
+    // Check if user has enough points
+    if (userDet.score < selectedAvatar.cost) {
+      const needed = selectedAvatar.cost - userDet.score;
+      setModalMessage(`Not enough points. You need ${needed} more points!`);
+      setShowErrorModal(true);
+      setShowConfirmModal(false);
+      return;
+    }
+
+    try {
+      const response = await axios.put(
+        `${getBaseUrl()}/user-api/reward/${avatarIndex + 1}`,
+        {
+          email: userDet.email,
+        }
+      );
+
+      // Update user state after successful purchase
+      setUserDet((prev) => ({
+        ...prev,
+        score: response.data.remainingScore,
+        rewards: [...(prev.rewards || []), selectedAvatar.name],
+      }));
+
+      setModalMessage(`Successfully purchased ${selectedAvatar.name}!`);
+      setShowSuccessModal(true);
+      setShowConfirmModal(false);
+    } catch (error) {
+      console.error("Error purchasing reward:", error);
+      setModalMessage(
+        error.response?.data?.message || "Failed to purchase avatar"
+      );
+      setShowErrorModal(true);
+      setShowConfirmModal(false);
+    }
+  };
+  useEffect(() => {
+    const fetchStreak = async () => {
+      try {
+        const res = await axios.get(`${getBaseUrl()}/user-api/streak/${userDet.email}`);
+        console.log(res.data)
+        setStreakData(res.data);
+      } catch (err) {
+        console.error("Error fetching streak data:", err);
+      }
+    };
+
+    if (userDet.email) {
+      fetchStreak();
+    }
+  }, [userDet.email]);
 
   return (
     <div className="dashboard">
@@ -237,7 +370,45 @@ function Dashboard() {
               </div>
             </div>
           </div>
-          <div>
+          <div className="d-flex align-items-center">
+            {userDet?.rewards && userDet.rewards.length > 0 ? (
+              <div>
+                <small className="text-white d-block mb-1 text-center">
+                  My Rewards
+                </small>
+                <div className="d-flex gap-2">
+                  {userDet.rewards.map((rewardName, index) => {
+                    const avatar = avatars.find((a) => a.name === rewardName);
+                    return avatar ? (
+                      <div
+                        key={index}
+                        className="bg-white rounded p-1"
+                        title={avatar.name}
+                        style={{ fontSize: "1.5rem", cursor: "pointer" }}
+                      >
+                        {avatar.emoji}
+                      </div>
+                    ) : null;
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div className="text-white text-center">
+                <small>No rewards yet</small>
+              </div>
+            )}
+          </div>
+
+          <div className="streak-info text-white text-center">
+            <h6 className="mb-1">Streak</h6>
+            <div>
+              <small>Current: {streakData.currentStreak}</small>
+            </div>
+            <div>
+              <small>Highest: {streakData.bestStreak}</small>
+            </div>
+          </div>
+          <div className="d-flex flex-column">
             <h5 className="mb-0 pixeFont">Play HabiFy</h5>
             <button
               className="btn btn-light btn-sm mt-2"
@@ -245,13 +416,19 @@ function Dashboard() {
             >
               Leaderboard
             </button>
+            <button
+              className="btn btn-light btn-sm mt-2"
+              onClick={() => navigate("/community")}
+            >
+              Community
+            </button>
           </div>
         </div>
       </div>
 
       {/* Main Sections */}
       <div className="container my-4">
-        <div className="row justify-content-center g-4">
+        <div className="row d-flex justify-content-around g-4">
           {/* Habits Section */}
           <div className="col-md-3">
             <div className="section-box">
@@ -315,7 +492,7 @@ function Dashboard() {
                   </div>
                 ) : (
                   <button
-                    className="btn btn-outline-primary btn-sm"
+                    className="btn btn-outline-primary btn-sm w-100"
                     onClick={() => setShowHabitInput(true)}
                   >
                     Add a Habit
@@ -326,10 +503,9 @@ function Dashboard() {
           </div>
 
           {/* Dailies Section */}
-
-          <div className="col-md-3">
-            <div className="section-box p-3 rounded border bg-white shadow-sm">
-              <h6 className="mb-3 fw-bold d-flex justify-content-between align-items-center">
+          <div className="col-md-3 m-auto">
+            <div className="section-box p-3 rounded  bg-white m-auto ">
+              <h6 className="mb-3 fw-bold d-flex justify-content-center align-items-center">
                 Dailies
                 <span className="badge bg-purple">
                   {userDet?.daily?.length || 0}
@@ -359,6 +535,11 @@ function Dashboard() {
                       >
                         <span>{d.name}</span>
                         <span className="badge bg-secondary">{d.count}</span>
+                        {isDone && (
+                          <small className="text-muted ms-2">
+                            Available at midnight
+                          </small>
+                        )}
                       </div>
                     );
                   })}
@@ -408,45 +589,202 @@ function Dashboard() {
           </div>
 
           {/* Rewards Section */}
-          <div className="col-md-5">
+          <div className="col-md-3">
             <div className="section-box">
               <h6 className="mb-3 fw-bold">Avatar Shop</h6>
               <div className="d-flex flex-wrap gap-3">
-                {avatars
-                  .filter((a) => !userDet?.rewards?.includes(a.name))
-                  .map((a, idx) => (
-                    <div
-                      key={idx}
-                      className="d-flex flex-column align-items-center justify-content-between p-2 rounded border"
-                      style={{
-                        width: "90px",
-                        minHeight: "130px",
-                        backgroundColor: "#f9f9f9",
-                      }}
-                    >
-                      <div style={{ fontSize: "1.8rem" }}>{a.emoji}</div>
+                {userDet?.rewards?.length === avatars.length ? (
+                  <div
+                    className="text-center p-4 border rounded d-flex flex-column m-auto"
+                    style={{ backgroundColor: "#f9f9f9" }}
+                  >
+                    <div style={{ fontSize: "2rem" }}>🏆</div>
+                    <h6 className="mt-2">Congratulations!</h6>
+                    <p className="text-muted">You've collected all rewards.</p>
+                    <p className="mb-0 text-primary">
+                      Wait soon for more rewards!
+                    </p>
+                  </div>
+                ) : (
+                  avatars
+                    .filter((a) => !userDet?.rewards?.includes(a.name))
+                    .map((a, idx) => (
                       <div
-                        className="text-center"
-                        style={{ fontSize: "0.8rem" }}
+                        key={idx}
+                        className="d-flex flex-column align-items-center justify-content-between p-2 rounded border"
+                        style={{
+                          width: "90px",
+                          minHeight: "130px",
+                          backgroundColor: "#f9f9f9",
+                        }}
                       >
-                        {a.name}
+                        <div style={{ fontSize: "1.8rem" }}>{a.emoji}</div>
+                        <div
+                          className="text-center"
+                          style={{ fontSize: "0.8rem" }}
+                        >
+                          {a.name}
+                        </div>
+                        <span
+                          className="badge bg-warning text-dark"
+                          style={{ fontSize: "0.75rem" }}
+                        >
+                          ⚡ {a.cost}
+                        </span>
+                        <button
+                          className="btn btn-sm btn-outline-primary mt-1"
+                          style={{ fontSize: "0.7rem" }}
+                          onClick={() => handleBuyReward(a)}
+                        >
+                          Buy
+                        </button>
                       </div>
-                      <span
-                        className="badge bg-warning text-dark"
-                        style={{ fontSize: "0.75rem" }}
-                      >
-                        ⚡ {a.cost}
-                      </span>
-                      <button
-                        className="btn btn-sm btn-outline-primary mt-1"
-                        style={{ fontSize: "0.7rem" }}
-                        onClick={() => handleBuyAvatar(a)}
-                      >
-                        Buy
-                      </button>
-                    </div>
-                  ))}
+                    ))
+                )}
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {/* Confirmation Modal */}
+      <div
+        className={`modal fade ${showConfirmModal ? "show d-block" : ""}`}
+        tabIndex="-1"
+        role="dialog"
+        style={{
+          backgroundColor: showConfirmModal ? "rgba(0,0,0,0.5)" : "transparent",
+        }}
+      >
+        <div className="modal-dialog modal-dialog-centered" role="document">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h5 className="modal-title">Confirm Purchase</h5>
+              <button
+                type="button"
+                className="btn-close"
+                onClick={() => setShowConfirmModal(false)}
+              ></button>
+            </div>
+            <div className="modal-body">
+              {selectedAvatar && (
+                <div className="text-center">
+                  <div style={{ fontSize: "3rem" }}>{selectedAvatar.emoji}</div>
+                  <p>
+                    Are you sure you want to purchase{" "}
+                    <strong>{selectedAvatar.name}</strong> for{" "}
+                    <span className="badge bg-warning text-dark">
+                      ⚡ {selectedAvatar.cost}
+                    </span>
+                    ?
+                  </p>
+                  <p>
+                    Your current balance:{" "}
+                    <span className="badge bg-primary">⚡ {userDet.score}</span>
+                  </p>
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setShowConfirmModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={confirmPurchase}
+              >
+                Confirm Purchase
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Success Modal */}
+      <div
+        className={`modal fade ${showSuccessModal ? "show d-block" : ""}`}
+        tabIndex="-1"
+        role="dialog"
+        style={{
+          backgroundColor: showSuccessModal ? "rgba(0,0,0,0.5)" : "transparent",
+        }}
+      >
+        <div className="modal-dialog modal-dialog-centered" role="document">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h5 className="modal-title">Success!</h5>
+              <button
+                type="button"
+                className="btn-close"
+                onClick={() => setShowSuccessModal(false)}
+              ></button>
+            </div>
+            <div className="modal-body">
+              <div className="text-center">
+                <i
+                  className="bi bi-check-circle-fill text-success"
+                  style={{ fontSize: "3rem" }}
+                ></i>
+                <p className="mt-3">{modalMessage}</p>
+                <p>
+                  Your new balance:{" "}
+                  <span className="badge bg-primary">⚡ {userDet.score}</span>
+                </p>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => setShowSuccessModal(false)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Error Modal */}
+      <div
+        className={`modal fade ${showErrorModal ? "show d-block" : ""}`}
+        tabIndex="-1"
+        role="dialog"
+        style={{
+          backgroundColor: showErrorModal ? "rgba(0,0,0,0.5)" : "transparent",
+        }}
+      >
+        <div className="modal-dialog modal-dialog-centered" role="document">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h5 className="modal-title">Oops!</h5>
+              <button
+                type="button"
+                className="btn-close"
+                onClick={() => setShowErrorModal(false)}
+              ></button>
+            </div>
+            <div className="modal-body">
+              <div className="text-center">
+                <i
+                  className="bi bi-exclamation-circle-fill text-danger"
+                  style={{ fontSize: "3rem" }}
+                ></i>
+                <p className="mt-3">{modalMessage}</p>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setShowErrorModal(false)}
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

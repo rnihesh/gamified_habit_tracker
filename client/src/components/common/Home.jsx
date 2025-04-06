@@ -89,6 +89,13 @@ function Home() {
                   flexDirection: "column",
                 }}
               >
+                <div style={{ marginBottom: "0px" }}>
+                  <ScrollVelocity
+                    texts={["🐱🧙‍♂🤖👽💀", "🦸‍♀👑🐉🐸🧛‍♂", "Complete & Earn"]}
+                    velocity={100}
+                    className="custom-scroll-text"
+                  />
+                </div>
                 <ASCIIText
                   text="HabiFy !!"
                   enableWaves={true}
@@ -97,7 +104,7 @@ function Home() {
 
                 <div style={{ marginTop: "700px" }}>
                   <ScrollVelocity
-                    texts={["Task It", "Complete It", "Get Rewards"]}
+                    texts={["🐱🧙‍♂🤖👽💀", "🦸‍♀👑🐉🐸🧛‍♂", "Complete It"]}
                     velocity={100}
                     className="custom-scroll-text"
                   />

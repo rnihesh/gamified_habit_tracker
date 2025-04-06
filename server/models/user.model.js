@@ -44,15 +44,20 @@ const userSchema = new mongoose.Schema(
     rewards: {
       type: [String],
     },
+    streak: {
+      current: { type: Number, default: 0 },
+      best: { type: Number, default: 0 },
+      lastActiveDate: { type: Date, default: Date.now },
+    },
 
     isActive: {
       type: Boolean,
       default: true,
-    }
+    },
   },
-  { 
+  {
     strict: "throw",
-    timestamps: true
+    timestamps: true,
   }
 );
 

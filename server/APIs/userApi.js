@@ -6,6 +6,7 @@ const Post = require("../models/posts.model.js");
 
 const expressAsyncHandler = require("express-async-handler");
 const createUser = require("../APIs/createUser.js");
+const updateUserStreak = require("../utils/updateUserStreak.js")
 
 userApp.use(exp.json());
 
@@ -357,5 +358,57 @@ userApp.get(
     res.status(200).send(posts);
   })
 );
+
+
+
+//streaks
+userApp.post('/complete-activity', async (req, res) => {
+  try {
+    const { email, activityName } = req.body; 
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Find and update the activity by name
+    const activity = user.daily.find(item => item.name === activityName);
+    if (!activity) {
+      return res.status(404).json({ success: false, message: 'Activity not found' });
+    }
+
+    activity.count += 1; 
+
+    await user.save();
+
+    // Update streak using email
+    await updateUserStreak(email);
+
+    res.status(200).json({ success: true, message: 'Activity completed and streak updated' });
+  } catch (error) {
+    console.error('Error completing activity:', error);
+    res.status(500).json({ success: false, message: 'Failed to complete activity' });
+  }
+});
+
+userApp.get('/streak/:email', expressAsyncHandler(async (req, res) => {
+  try {
+    const email = req.params.email; 
+    if (!email) return res.status(400).json({ message: "Email is required" });
+
+    const user = await User.findOne({ email }).select('streak');
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    res.status(200).json({
+      currentStreak: user.streak.current,
+      bestStreak: user.streak.best
+    });
+  } catch (error) {
+    console.error('Error loading streak:', error);
+    res.status(500).json({ success: false, message: 'Failed to load streak data' });
+  }
+}));
+
+
 
 module.exports = userApp;

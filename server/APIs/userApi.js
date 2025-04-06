@@ -7,6 +7,8 @@ const Post = require("../models/posts.model.js");
 const expressAsyncHandler = require("express-async-handler");
 const createUser = require("../APIs/createUser.js");
 
+userApp.use(exp.json());
+
 userApp.post("/user", expressAsyncHandler(createUser));
 
 //task incrementer
@@ -330,9 +332,10 @@ userApp.post(
 
 //like count
 userApp.put(
-  "/like",
+  "/like/:postId",
   expressAsyncHandler(async (req, res) => {
-    const { postId } = req.body;
+    // console.log("testing req.body : ",req.params)
+    const  {postId}  = req.params;
     if (!postId) {
       return res.status(400).send({ message: "postId is required" });
     }

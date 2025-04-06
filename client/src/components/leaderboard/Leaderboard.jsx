@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
+import { getBaseUrl } from "../utils/config.js";
 
 const Leaderboard = () => {
   const [users, setUsers] = useState([]);
@@ -8,7 +9,7 @@ const Leaderboard = () => {
   const fetchLeaderboard = async () => {
     try {
       const response = await axios.get(
-        "http://localhost:3000/user-api/leaderboard"
+        `${getBaseUrl()}/user-api/leaderboard`
       );
       setUsers(response.data.users);
     } catch (error) {

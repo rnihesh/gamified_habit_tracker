@@ -32,7 +32,7 @@ export default function Footer() {
       display: 'flex',
       justifyContent: 'space-between', // This pushes left and right sections to corners
       marginTop: '4rem',
-      '@media (max-width: 768px)': {
+      '@media (maxWidth: 768px)': {
         flexDirection: 'column',
         gap: '2rem',
         marginTop: '5rem'
@@ -46,7 +46,7 @@ export default function Footer() {
       width: '100%',
       maxWidth: '300px',
       textAlign: 'center',
-      '@media (max-width: 768px)': {
+      '@media (maxWidth: 768px)': {
         position: 'static',
         transform: 'none',
         margin: '0 auto 2rem'
@@ -135,7 +135,7 @@ export default function Footer() {
         gap: '0.5rem',
         color: '#94a3b8',
         fontSize: '0.9rem',
-        '@media (max-width: 768px)': {
+        '@media (maxWidth: 768px)': {
           justifyContent: 'flex-start'
         },
         svg: {
@@ -151,7 +151,7 @@ export default function Footer() {
       textAlign: 'center',
       color: '#64748b',
       fontSize: '0.85rem',
-      '@media (max-width: 768px)': {
+      '@media (maxWidth: 768px)': {
         marginTop: '2rem'
       }
     },

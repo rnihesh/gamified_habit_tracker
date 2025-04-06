@@ -320,8 +320,10 @@ function Dashboard() {
   useEffect(() => {
     const fetchStreak = async () => {
       try {
-        const res = await axios.get(`${getBaseUrl()}/user-api/streak/${userDet.email}`);
-        console.log(res.data)
+        const res = await axios.get(
+          `${getBaseUrl()}/user-api/streak/${userDet.email}`
+        );
+        console.log(res.data);
         setStreakData(res.data);
       } catch (err) {
         console.error("Error fetching streak data:", err);
@@ -503,7 +505,7 @@ function Dashboard() {
           </div>
 
           {/* Dailies Section */}
-          <div className="col-md-3 m-auto">
+          <div className="col-md-3">
             <div className="section-box p-3 rounded  bg-white m-auto ">
               <h6 className="mb-3 fw-bold d-flex justify-content-center align-items-center">
                 Dailies

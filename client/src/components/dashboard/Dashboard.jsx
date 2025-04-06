@@ -506,7 +506,7 @@ function Dashboard() {
 
           {/* Dailies Section */}
           <div className="col-md-3">
-            <div className="section-box p-3 rounded  bg-white ">
+            <div className="section-box rounded  bg-white ">
               <h6 className="mb-3 fw-bold d-flex justify-content-center align-items-center">
                 Dailies
                 <span className="badge bg-purple">

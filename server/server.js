@@ -45,8 +45,6 @@ cron.schedule("0 * * * *", () => {
   console.log("Checking user streaks...");
   checkStreaks();
 });
-console.log('Public VAPID Key:', process.env.PUBLIC_VAPID_KEY);
-console.log('Private VAPID Key:', process.env.PRIVATE_VAPID_KEY);
 
 const webpush = require("web-push");
 

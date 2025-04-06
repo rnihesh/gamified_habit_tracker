@@ -3,5 +3,5 @@ const isDevelopment = import.meta.env.MODE === "development";
 
 // Get the base URL based on environment
 export const getBaseUrl = () => {
-  return isDevelopment ? "http://localhost:3000" : "https://logly.onrender.com"; // Backend URL on Render
+  return isDevelopment ? "http://localhost:3000" : "https://habify.onrender.com"; // Backend URL on Render
 };
